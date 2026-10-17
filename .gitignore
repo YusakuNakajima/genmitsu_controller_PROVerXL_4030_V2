@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# 付属 USB メモリ / SainSmart の配布物(著作権のため含めない)
+*.pdf
+Driver/
+Test Code/
+
+# インストーラー(サイズが大きいため含めない。公式サイトから入手)
+Software(Candle UGS)/
+*.dmg
+*.zip
+*.ZIP
+
+# 元のスクリーンショット(必要なものは images/ にコピー済み)
+Screenshot *.png

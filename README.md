@@ -18,7 +18,7 @@ Python から XYZ ステージとして動かすための GUI も作った([PYTH
 
 ## 要点
 
-- **ドライバ**:USB チップは CH340。macOS 11 以降は標準で入っているので不要。Windows 10/11 も多くは自動で入る
+- **ドライバ**:USB チップは CH340。macOS 11 以降は標準で入っているので不要。Windows 10/11 も USB を挿せば Windows Update で自動で入る(Windows 11 Pro で確認)
 - **ソフト**:UGS Platform の最新版を公式サイト(https://winder.github.io/ugs_website/download/)から入れる。付属 USB メモリの UGS / Candle は古いので使わない
 - **接続設定**:Firmware `GRBL`、Baud `115200`
 - **接続したら、まずホーミング**(🏠 / `$H`)。ホーミングの後、Z は一番上にいる
@@ -31,7 +31,8 @@ Python から XYZ ステージとして動かすための GUI も作った([PYTH
 | 機械 | Genmitsu PROVerXL 4030 V2(GRBL 1.1h) |
 | Mac | Apple Silicon、macOS(Darwin 27) |
 | UGS | Universal Gcode Sender Platform 2.1.26 |
-| Windows | 実機では未確認(付属ファイルと公式の配布物から手順を作成) |
+| Windows | Windows 11 Pro(ASUS ExpertBook B1403CVA)。CH340 ドライバは Windows Update で自動で入り、UGS 2.1.26 で接続・操作できた([SETUP_WINDOWS.md](SETUP_WINDOWS.md)) |
+| Python / GUI | Mac(Python 3.12)と Windows 11 Pro(Python 3.11)の両方で動くことを確認([PYTHON_GUIDE.md](PYTHON_GUIDE.md)) |
 
 ## このリポジトリに含めていないもの
 

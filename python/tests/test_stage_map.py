@@ -1,0 +1,40 @@
+import tkinter as tk
+
+import pytest
+
+from genmitsu.stage_map import StageMap
+
+
+@pytest.fixture
+def root():
+    try:
+        r = tk.Tk()
+    except tk.TclError:
+        pytest.skip("画面がない環境")
+    r.withdraw()
+    yield r
+    r.destroy()
+
+
+def test_home_is_top_right_and_far_corner_is_bottom_left(root):
+    m = StageMap(root, travel=(400, 300, 100), scale=1.0)
+    left, top, _, _ = m.margin
+    assert m.xy_to_px(0, 0) == (left + 400, top)
+    assert m.xy_to_px(-400, -300) == (left, top + 300)
+
+
+def test_px_to_xy_is_inverse(root):
+    m = StageMap(root, scale=0.9)
+    px, py = m.xy_to_px(-123.4, -56.7)
+    x, y = m.px_to_xy(px, py)
+    assert x == pytest.approx(-123.4)
+    assert y == pytest.approx(-56.7)
+
+
+def test_click_inside_area_reports_machine_xy(root):
+    clicked = []
+    m = StageMap(root, scale=1.0, on_click=lambda x, y: clicked.append((x, y)))
+    px, py = m.xy_to_px(-100, -50)
+    m._clicked(type("E", (), {"x": px, "y": py})())
+    m._clicked(type("E", (), {"x": 0, "y": 0})())  # 範囲の外は無視
+    assert clicked == [(-100, -50)]

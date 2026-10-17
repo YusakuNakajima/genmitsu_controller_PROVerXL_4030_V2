@@ -14,3 +14,9 @@ Software(Candle UGS)/
 
 # 元のスクリーンショット(必要なものは images/ にコピー済み)
 Screenshot *.png
+
+# Python
+__pycache__/
+.venv/
+*.egg-info/
+.pytest_cache/

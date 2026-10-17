@@ -9,6 +9,7 @@ SainSmart の CNC ルーター **Genmitsu PROVerXL 4030 V2** を、Mac / Windows
 | [SETUP_MAC.md](SETUP_MAC.md) | Mac のセットアップ(ドライバ不要の理由、UGS のインストール、Gatekeeper の回避) |
 | [SETUP_WINDOWS.md](SETUP_WINDOWS.md) | Windows のセットアップ(CH340 ドライバ、UGS のインストール) |
 | [UGS_GUIDE.md](UGS_GUIDE.md) | UGS の使い方(接続 → ホーミング → ジョグ → 原点設定 → 加工)、GRBL の設定、トラブル事例 |
+| [PYTHON_GUIDE.md](PYTHON_GUIDE.md) | Python(pyserial)から GRBL を直接制御する |
 
 ## 要点
 

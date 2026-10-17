@@ -2,6 +2,10 @@
 
 SainSmart の CNC ルーター **Genmitsu PROVerXL 4030 V2** を、Mac / Windows から **Universal Gcode Sender(UGS)** で動かすまでの手順と、実際にはまったトラブルの記録。
 
+Python から XYZ ステージとして動かすための GUI も作った([PYTHON_GUIDE.md](PYTHON_GUIDE.md))。
+
+![ステージ操作用の GUI](images/stage_gui.png)
+
 ## ドキュメント
 
 | ファイル | 内容 |
@@ -9,7 +13,8 @@ SainSmart の CNC ルーター **Genmitsu PROVerXL 4030 V2** を、Mac / Windows
 | [SETUP_MAC.md](SETUP_MAC.md) | Mac のセットアップ(ドライバ不要の理由、UGS のインストール、Gatekeeper の回避) |
 | [SETUP_WINDOWS.md](SETUP_WINDOWS.md) | Windows のセットアップ(CH340 ドライバ、UGS のインストール) |
 | [UGS_GUIDE.md](UGS_GUIDE.md) | UGS の使い方(接続 → ホーミング → ジョグ → 原点設定 → 加工)、GRBL の設定、トラブル事例 |
-| [PYTHON_GUIDE.md](PYTHON_GUIDE.md) | Python(pyserial)から GRBL を直接制御する |
+| [PYTHON_GUIDE.md](PYTHON_GUIDE.md) | Python から XYZ ステージとして使う(GUI の使い方) |
+| [python/README.md](python/README.md) | Python パッケージの構成、ライブラリとしての使い方、テスト(開発者向け) |
 
 ## 要点
 

@@ -16,7 +16,7 @@ from __future__ import annotations
 import re
 import time
 from pathlib import Path
-from typing import Iterable
+from typing import Callable, Iterable
 
 import serial
 from serial.tools import list_ports
@@ -78,6 +78,9 @@ class Grbl:
         self.ser: serial.Serial | None = None
         self.wco = [0.0, 0.0, 0.0]  # ワーク座標オフセット(WPos = MPos - WCO)
         self._travel: list[float] | None = None  # $130〜$132(動ける範囲)
+        # GUI などに知らせるためのフック。on_line は受信した全行、on_status は status() の結果を受け取る
+        self.on_line: Callable[[str], None] | None = None
+        self.on_status: Callable[[dict], None] | None = None
 
     # ---- 接続 ----
 
@@ -116,6 +119,8 @@ class Grbl:
         line = raw.decode("ascii", errors="replace").strip()
         if line and self.verbose:
             print(f"<< {line}")
+        if line and self.on_line:
+            self.on_line(line)
         return line
 
     def send(self, line: str, timeout: float = 10.0) -> list[str]:
@@ -155,6 +160,8 @@ class Grbl:
                     self.wco = st["WCO"]
                 if "MPos" in st and "WPos" not in st:
                     st["WPos"] = [m - o for m, o in zip(st["MPos"], self.wco)]
+                if self.on_status:
+                    self.on_status(st)
                 return st
         raise TimeoutError("ステータスの応答がない")
 

@@ -26,6 +26,7 @@ class StageMap(tk.Canvas):
                  scale: float = 0.9, on_click: Callable[[float, float], None] | None = None):
         self.scale = scale
         self.margin = (34, 14, 14, 24)  # 左, 上, 右, 下
+        self.offset = (0.0, 0.0)  # 図を中央に寄せるためのずらし量(px)
         self.zbar_w = 56
         self.on_click = on_click
         self.travel = travel
@@ -37,6 +38,7 @@ class StageMap(tk.Canvas):
         w, h = self._size()
         super().__init__(parent, width=w, height=h, bg=BG, highlightthickness=0)
         self.bind("<Button-1>", self._clicked)
+        self.bind("<Configure>", lambda e: self.fit(e.width, e.height))
         self.redraw()
 
     # ---- 座標の変換 ----
@@ -46,30 +48,47 @@ class StageMap(tk.Canvas):
         return (int(left + self.travel[0] * self.scale + right + self.zbar_w),
                 int(top + self.travel[1] * self.scale + bottom))
 
+    def fit(self, width: int, height: int) -> None:
+        """キャンバスの大きさに合わせて縮尺を決める(縦横比は保ち、余白は左右・上下に均等に振る)。"""
+        left, top, right, bottom = self.margin
+        avail_w = width - left - right - self.zbar_w
+        avail_h = height - top - bottom
+        if avail_w < 20 or avail_h < 20:
+            return
+        tx, ty, _ = self.travel
+        self.scale = min(avail_w / tx, avail_h / ty)
+        self.offset = ((avail_w - tx * self.scale) / 2, (avail_h - ty * self.scale) / 2)
+        self.redraw()
+
+    def _origin(self) -> tuple[float, float]:
+        """可動範囲の左上の角の位置(px)。"""
+        return self.margin[0] + self.offset[0], self.margin[1] + self.offset[1]
+
     def xy_to_px(self, x: float, y: float) -> tuple[float, float]:
-        left, top, _, _ = self.margin
-        return left + (x + self.travel[0]) * self.scale, top + (-y) * self.scale
+        ox, oy = self._origin()
+        return ox + (x + self.travel[0]) * self.scale, oy + (-y) * self.scale
 
     def px_to_xy(self, px: float, py: float) -> tuple[float, float]:
-        left, top, _, _ = self.margin
-        return (px - left) / self.scale - self.travel[0], -(py - top) / self.scale
+        ox, oy = self._origin()
+        return (px - ox) / self.scale - self.travel[0], -(py - oy) / self.scale
 
     def _z_to_py(self, z: float) -> float:
-        _, top, _, _ = self.margin
+        _, oy = self._origin()
         h = self.travel[1] * self.scale
-        return top + (-z) / self.travel[2] * h
+        return oy + (-z) / self.travel[2] * h
 
     def _zbar_x(self) -> float:
-        left, _, right, _ = self.margin
-        return left + self.travel[0] * self.scale + right + 14
+        ox, _ = self._origin()
+        return ox + self.travel[0] * self.scale + self.margin[2] + 14
 
     # ---- 状態を変える ----
 
     def set_travel(self, travel: tuple[float, float, float]) -> None:
         self.travel = tuple(travel)
-        w, h = self._size()
-        self.configure(width=w, height=h)
-        self.redraw()
+        if self.winfo_width() > 1:
+            self.fit(self.winfo_width(), self.winfo_height())
+        else:
+            self.redraw()
 
     def set_points(self, points: list[Point], selected: int | None = None) -> None:
         self.points = list(points)

@@ -44,8 +44,9 @@ class StageApp:
         self.motion_widgets: list[tk.Widget] = []
 
         root.title("Genmitsu ステージ")
-        root.minsize(980, 760)
+        root.minsize(720, 460)
         self._build()
+        self._fit_to_screen()
         self._refresh_ports()
         self._refresh_points()
         self._set_connected(False)
@@ -75,18 +76,27 @@ class StageApp:
 
         body = ttk.Frame(self.root)
         body.pack(fill="both", expand=True, **pad)
-        left = ttk.Frame(body)
-        left.pack(side="left", fill="y")
-        right = ttk.Frame(body)
+        # 左:縦が足りないときはスクロールする
+        left_scroll = ScrollableFrame(body)
+        left_scroll.pack(side="left", fill="y")
+        left = left_scroll.inner
+        # 右:図・登録位置・ログの境目をドラッグして配分を変えられる
+        right = ttk.PanedWindow(body, orient="vertical")
         right.pack(side="left", fill="both", expand=True, padx=(10, 0))
 
         self._build_status(left)
         self._build_controls(left)
         self._build_jog(left)
         self._build_goto(left)
-        self._build_map(right)
-        self._build_points(right)
-        self._build_log(right)
+        right.add(self._build_map(right), weight=3)
+        right.add(self._build_points(right), weight=2)
+        right.add(self._build_log(right), weight=1)
+
+    def _fit_to_screen(self) -> None:
+        """画面に収まる大きさで開く(小さい画面では見切れないように)。"""
+        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        w, h = min(1320, sw - 40), min(900, sh - 120)
+        self.root.geometry(f"{max(w, 720)}x{max(h, 460)}")
 
     def _build_status(self, parent: ttk.Frame) -> None:
         box = ttk.LabelFrame(parent, text="状態(機械座標 mm)")
@@ -165,18 +175,19 @@ class StageApp:
         b2.grid(row=3, column=3, columnspan=3, sticky="e", padx=6, pady=6)
         self.motion_widgets += [b1, b2]
 
-    def _build_map(self, parent: ttk.Frame) -> None:
+    def _build_map(self, parent: ttk.PanedWindow) -> ttk.LabelFrame:
         box = ttk.LabelFrame(parent, text="機械全体での位置(上から見た図。クリックで移動欄に XY を入れる)")
-        box.pack(fill="x", pady=4)
-        self.map = StageMap(box, on_click=self._map_clicked)
-        self.map.pack(padx=4, pady=4)
         legend = ttk.Frame(box)
-        legend.pack(fill="x", padx=6, pady=(0, 4))
+        legend.pack(side="bottom", fill="x", padx=6, pady=(0, 4))
+        # 最初の縮尺は小さめにしておき、枠の大きさに合わせて広げる
+        self.map = StageMap(box, scale=0.5, on_click=self._map_clicked)
+        self.map.pack(fill="both", expand=True, padx=4, pady=4)
         for text, color in [("● 現在位置", "#c62828"), ("◌ 移動先", "#2e7d32"), ("● 登録位置", "#1565c0"),
                             ("● 選択中", "#ef6c00")]:
             tk.Label(legend, text=text, fg=color).pack(side="left", padx=4)
         for var in self.goto_vars:
             var.trace_add("write", lambda *a: self._update_map_target())
+        return box
 
     def _map_clicked(self, x: float, y: float) -> None:
         self.goto_vars[0].set(f"{x:.1f}")
@@ -191,11 +202,10 @@ class StageApp:
                 values.append(None)
         self.map.set_target(*values)
 
-    def _build_points(self, parent: ttk.Frame) -> None:
+    def _build_points(self, parent: ttk.PanedWindow) -> ttk.LabelFrame:
         box = ttk.LabelFrame(parent, text="登録位置(ダブルクリックで移動欄に入れる)")
-        box.pack(fill="both", expand=True, pady=4)
         cols = ("name", "x", "y", "z", "feed", "dwell")
-        self.tree = ttk.Treeview(box, columns=cols, show="headings", height=6, selectmode="browse")
+        self.tree = ttk.Treeview(box, columns=cols, show="headings", height=4, selectmode="browse")
         for c, text, w in zip(cols, ("名前", "X", "Y", "Z", "速度", "秒数"), (120, 72, 72, 72, 64, 48)):
             self.tree.heading(c, text=text)
             self.tree.column(c, width=w, anchor="w" if c == "name" else "e")
@@ -229,17 +239,18 @@ class StageApp:
         b = ttk.Button(tour, text="上から順に巡回", command=self.tour)
         b.pack(side="left", padx=8)
         self.motion_widgets.append(b)
+        return box
 
-    def _build_log(self, parent: ttk.Frame) -> None:
+    def _build_log(self, parent: ttk.PanedWindow) -> ttk.LabelFrame:
         box = ttk.LabelFrame(parent, text="ログ")
-        box.pack(fill="both", expand=True, pady=4)
-        self.log_text = tk.Text(box, height=6, wrap="word", state="disabled", font=("Menlo", 11))
+        self.log_text = tk.Text(box, height=3, wrap="word", state="disabled", font=("Menlo", 11))
         self.log_text.pack(side="left", fill="both", expand=True, padx=4, pady=4)
         sb = ttk.Scrollbar(box, orient="vertical", command=self.log_text.yview)
         sb.pack(side="left", fill="y", pady=4)
         self.log_text.configure(yscrollcommand=sb.set)
         self.log_text.tag_configure("error", foreground="#c62828")
         self.log_text.tag_configure("grbl", foreground="#6a1b9a")
+        return box
 
     # ---- 表示の更新 ----
 
@@ -548,6 +559,42 @@ class StageApp:
         if path:
             save_points(path, self.points)
             self.log(f"{path} に書き出した")
+
+
+class ScrollableFrame(ttk.Frame):
+    """中身(inner)が縦に収まらないときだけスクロールバーを出すフレーム。"""
+
+    def __init__(self, parent: tk.Widget):
+        super().__init__(parent)
+        bg = ttk.Style().lookup("TFrame", "background") or None
+        self.canvas = tk.Canvas(self, highlightthickness=0, borderwidth=0, height=100, bg=bg)
+        self.vbar = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.vbar.set)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.inner = ttk.Frame(self.canvas)
+        self._window = self.canvas.create_window(0, 0, window=self.inner, anchor="nw")
+        self.inner.bind("<Configure>", lambda e: self._update())
+        self.canvas.bind("<Configure>", lambda e: self._update())
+        # マウスホイールは、ポインタがこの中にあるときだけ効かせる
+        self.bind("<Enter>", lambda e: self.bind_all("<MouseWheel>", self._on_wheel))
+        self.bind("<Leave>", lambda e: self.unbind_all("<MouseWheel>"))
+
+    def _update(self) -> None:
+        self.canvas.configure(width=self.inner.winfo_reqwidth(), scrollregion=(
+            0, 0, self.inner.winfo_reqwidth(), self.inner.winfo_reqheight()))
+        need = self.inner.winfo_reqheight() > self.canvas.winfo_height() > 1
+        if need and not self.vbar.winfo_ismapped():
+            self.vbar.pack(side="right", fill="y")
+        elif not need and self.vbar.winfo_ismapped():
+            self.vbar.pack_forget()
+            self.canvas.yview_moveto(0)
+
+    def _on_wheel(self, event: tk.Event) -> None:
+        if not self.vbar.winfo_ismapped():
+            return
+        # Windows は 1 目盛りが 120、macOS は小さい値で届く
+        step = -event.delta // 120 if abs(event.delta) >= 120 else -event.delta
+        self.canvas.yview_scroll(int(step), "units")
 
 
 class PointDialog(tk.Toplevel):
